@@ -3,16 +3,20 @@ import re
 import feedparser
 import pdb
 import time
+from notify_run import Notify
 
 UPDATE_INTERVAL = 30
 # Save the ids of already processed posts
 CACHED_POSTS = set([])
 
+notify = Notify()
+
 # Fill in this method with something that you want to do
 # Possible keys:
 # authors, author_detail, href, author, tags, content, summary, id, guidislink, link, links, updated, updated_parsed, title, title_detail
 def matched(entry):
-    print(entry["href"])
+    print("Found a new post: "+ entry["links"][0]["href"])
+    notify.send("Found a post that matches!", entry["links"][0]["href"])
 
 def get_posts(subreddit):
     sub_feed = feedparser.parse(subreddit)
@@ -32,7 +36,6 @@ while True:
         rss_feed = get_posts(sub)
         # Iterate over each rss entry
         for entry in rss_feed["entries"]:
-
             # If we've parsed this entry before skip over it
             if entry["id"] in CACHED_POSTS:
                 continue
