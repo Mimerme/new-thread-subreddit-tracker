@@ -4,6 +4,7 @@ import feedparser
 import pdb
 import time
 from notify_run import Notify
+import sys
 
 UPDATE_INTERVAL = 30
 # Save the ids of already processed posts
@@ -22,30 +23,46 @@ def get_posts(subreddit):
     sub_feed = feedparser.parse(subreddit)
     return sub_feed
 
-# Dictionary of regex filters loaded from a file
-# Key corresponds to subreddit (regexes under "default" are applied to all subs)
-regex_filters = {}
 
-with open('regex.yaml') as file:
-    regex_filters = yaml.load(file, Loader=yaml.FullLoader)
+def main():
+    # Dictionary of regex filters loaded from a file
+    # Key corresponds to subreddit (regexes under "default" are applied to all subs)
+    regex_filters = {}
 
-# TODO: compile the regex expressions in advance
-sub_list = [*regex_filters]
-while True:
-    for sub in sub_list:
-        rss_feed = get_posts(sub)
-        # Iterate over each rss entry
-        for entry in rss_feed["entries"]:
-            # If we've parsed this entry before skip over it
-            if entry["id"] in CACHED_POSTS:
-                continue
+    with open('regex.yaml') as file:
+        regex_filters = yaml.safe_load(file)
 
-            # For each entry try each regex expression
-            for key, regexs in regex_filters[sub].items():
-                # Try every specified regex
-                for regex in regexs:
-                    # If the regex matches at least once then execute a python method
-                    if re.compile(regex).search(entry[key]):
-                        matched(entry)
-            CACHED_POSTS.add(entry["id"])
-    time.sleep(UPDATE_INTERVAL)
+
+    print("Compiling regex expressisons...")
+    for key, search_filters in regex_filters.items():
+        for field, regexes in search_filters.items():
+            regex_filters[key][field] = list(map(lambda regex: re.compile(regex) , regex_filters[key][field]))
+    print("Finished compiling regex expresions")
+
+    sub_list = [*regex_filters]
+
+    print("Listening...")
+    while True:
+        for sub in sub_list:
+            rss_feed = get_posts(sub)
+            # Iterate over each rss entry
+            for entry in rss_feed["entries"]:
+                # If we've parsed this entry before skip over it
+                if entry["id"] in CACHED_POSTS:
+                    continue
+
+                # For each entry try each regex expression
+                for key, regexs in regex_filters[sub].items():
+                    # Try every specified regex
+                    for regex in regexs:
+                        # If the regex matches at least once then execute a python method
+                        if regex.search(entry[key]):
+                            matched(entry)
+                CACHED_POSTS.add(entry["id"])
+        time.sleep(UPDATE_INTERVAL)
+
+if __name__ == '__main__':
+    if len(sys.argv) >= 2 and sys.argv[1] == "test":
+        notify.send("This is a test", "https://google.com")
+    else:
+        main()

@@ -1,2 +1,2 @@
-https://old.reddit.com/r/dota2/new/.rss:
-  "title": ["(?i)battlepass"]
+https://old.reddit.com/r/hardwareswap/new/.rss:
+  title: ['\[H\].*(590|1060|580|1660|1070|1080).*\[W\]']
